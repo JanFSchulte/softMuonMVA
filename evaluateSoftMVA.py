@@ -47,18 +47,18 @@ def save_data(data, fileName):
     data.to_csv(fileName+".csv", index=False)
     print("File CSV saved!")
     del data
-    rdf = RDF.FromCSV(fileName+".csv")
-    rdf.Snapshot("FinalTree", fileName+".root")
-    print("File ROOT saved!")
+    #rdf = RDF.FromCSV(fileName+".csv")
+    #rdf.Snapshot("FinalTree", fileName+".root")
+    #print("File ROOT saved!")
 
 def predict(data, index, model):
     print("Start prediction label: ", index)
     branches = [var + str(index) for var in branches_MVA]
     X = data[branches]
     X = X.values
-    #predictionsID = model.predict(X)
+    predictionsID = model.predict(X)
     predictions = model.predict_proba(X)
-    #data["privateMVAID_mu"+str(index)] = predictionsID
+    data["privateMVAID_mu"+str(index)] = predictionsID
     data["privateMVA_mu"+str(index)] = predictions[:,1]
     del predictions
     del predictionsID
@@ -82,9 +82,10 @@ if __name__ == "__main__":
     filePath = '/depot/cms/users/schul105/Tau3Mu/analysis/CMSSW_15_0_6_patch1/src/Analysis/rootFiles/'
 
     files = [filePath+'AnalysedTree_MC_Ds_tau3mu_2023.root']
-    model = joblib.load('MVA_KPiGlobalNoPt.pkl')
+    #model = joblib.load('MVA_KPiGlobalNoPt.pkl')
+    model = joblib.load('firstTry.pkl')
     data = load_data(files)
     for i in range(1,maxN):
         data = predict(data, i, model)
-    save_data(data, "ROOTFiles/All"+type+"_plusMVA")
+    save_data(data, "files/All"+type+"_plusMVA")
 

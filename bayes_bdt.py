@@ -398,11 +398,11 @@ def main():
     plt.plot(fpr, tpr, label=label, linewidth=5)
     plt.plot([0,1],[0,1], linestyle='dashed', c='black',alpha=.9)
     
-    xgb_valid_probs = xgb_model.predict(xgb.DMatrix(xgb_valid_data))
-    auc = roc_auc_score(valid_labels, xgb_valid_probs)
-    fpr, tpr, _ = roc_curve(valid_labels, xgb_valid_probs)
-    plt.plot(fpr, tpr, label=f'Run3MVA: {auc:.4f}', linewidth=5)
-    plt.plot([0,1],[0,1], linestyle='dashed', c='black',alpha=.9)
+    #xgb_valid_probs = xgb_model.predict(xgb.DMatrix(xgb_valid_data))
+    #auc = roc_auc_score(valid_labels, xgb_valid_probs)
+    #fpr, tpr, _ = roc_curve(valid_labels, xgb_valid_probs)
+    #plt.plot(fpr, tpr, label=f'Run3MVA: {auc:.4f}', linewidth=5)
+    #plt.plot([0,1],[0,1], linestyle='dashed', c='black',alpha=.9)
     
     plt.xlabel('FPR')
     plt.ylabel('TPR')
