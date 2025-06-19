@@ -119,7 +119,7 @@ def apply_isGlobal(df, NotGlobal=False):
 
 ## BAYESIAN OPTIMIZATION
 
-def objective(trial):
+def objective(trial, train_data, train_labels, valid_data, valid_labels):
     ## optimize learning_rate, l2_regularization
 
     lr = trial.suggest_float('learning_rate', 0.0, 1)
@@ -291,7 +291,7 @@ def main():
             valid_data = np.load('valid_data.npy')
             valid_labels = np.load('valid_labels.npy')
             valid_mother_ids= np.load('valid_mother_ids.npy')
-            xbg_valid_data = np.load('xgb_valid_data.npy')
+            xgb_valid_data = np.load('xgb_valid_data.npy')
         
         except:
             print('Numpy arrays not found. Processing with the following options:')
@@ -308,7 +308,7 @@ def main():
             valid_data = np.load('valid_data.npy')
             valid_labels = np.load('valid_labels.npy')
             valid_mother_ids= np.load('valid_mother_ids.npy')
-            xbg_valid_data = np.load('xgb_valid_data.npy')
+            xgb_valid_data = np.load('xgb_valid_data.npy')
     
             print('Done')
     
@@ -330,11 +330,11 @@ def main():
         valid_labels = np.load('valid_labels.npy')
         valid_mvas = np.load('valid_mvas.npy')
         valid_mother_ids= np.load('valid_mother_ids.npy')
-        xbg_valid_data = np.load('xgb_valid_data.npy')
+        xgb_valid_data = np.load('xgb_valid_data.npy')
     
     
     study = optuna.create_study(directions=['maximize'])
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(lambda trail: objective(trail, train_data,train_labels, valid_data, valid_labels), n_trials=n_trials)
     '''
     print('Best Trials')
     for trial in study.best_trials:
