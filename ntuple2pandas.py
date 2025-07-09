@@ -10,23 +10,28 @@ import multiprocessing
 from time import time
 import pickle
 import awkward as ak
-
+import os
 exclude_keys = {'evt', 'run', 'lumi', 'nPileUpInt', 'GenParticle_PdgId', 'GenParticle_Pt', 'GenParticle_Eta', 'GenParticle_Phi', 'GenParticle_isDs', 'GenParticle_isB', 'GenParticle_isBdecay', 'GenParticle_MotherPdgId', 'MuonCollectionSize'}
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='Process dilepton sample and convert to pandas dataframe')
+
     parser.add_argument('--file', type=str, help='Root file to process')
+    #parser.add_argument('--dir', type=str, help='Directory')
     parser.add_argument('--outfile', type=str, help='Path to processed file, including .pkl extension')
     parser.add_argument('--n_jobs', type=int, help='Number of jobs')
     
     args = parser.parse_args()
     
     file = args.file
+    #directory = args.dir
+    #root_files = [directory + f for f in os.listdir(directory) if f.endswith(".root")]
     n_jobs = int(args.n_jobs)
     outfile = args.outfile
     
     file = uproot.open(file)
+    #file = uproot.lazy(root_files)
     
     for key in file.keys():
         if 'ntuple' in key:
@@ -48,7 +53,7 @@ def main():
             pass
     '''
     
-    ntuple_keys = ['Trigger_hltname','Trigger_hltdecision', 'Muon_isGlobal',
+    ntuple_keys = ['Trigger_hltname','Trigger_hltdecision', 'Muon_isGlobal', 'Muon_isMedium',
         'MuonEta', 'MuonPt', 'Muon_GLhitPattern_numberOfValidMuonHits',
        'Muon_GLnormChi2', 'Muon_Numberofvalidpixelhits',
        'Muon_Numberofvalidtrackerhits',

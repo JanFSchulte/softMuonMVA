@@ -169,7 +169,8 @@ def process(isGlobal=False, KPi=False, NotGlobal=False, plotting=False):
             "MuonPt",
         ]
        
-    with open('InclusiveDilepton_Run3Compare_WithCuts_DF.pkl', 'rb') as handle:
+    #with open('InclusiveDilepton_Run3Compare_WithCuts_DF.pkl', 'rb') as handle:
+    with open('background_singleMuons.pkl', 'rb') as handle:
         bkg_df = pickle.load(handle)
 
     with open('MCDsTau3Mu_DF.pkl', 'rb') as handle:
@@ -178,6 +179,7 @@ def process(isGlobal=False, KPi=False, NotGlobal=False, plotting=False):
         bd_df = pickle.load(handle)
     
     sig_df = pd.concat((ds_df, bd_df))
+
     if KPi:
         bkg_df = bkg_df[np.where(np.isin(np.abs(bkg_df['Muon_MotherPdgId']), [321, 221]), True, False)]
     else:
@@ -186,10 +188,12 @@ def process(isGlobal=False, KPi=False, NotGlobal=False, plotting=False):
     if isGlobal or NotGlobal:
         bkg_df = apply_isGlobal(bkg_df, NotGlobal=NotGlobal)
         sig_df = apply_isGlobal(sig_df, NotGlobal=NotGlobal)
-    
-    bkg_df = apply_hlt(bkg_df)
-    bkg_df = disp_cols(bkg_df)
 
+    #deactivate trigger requirement when not using triplets
+    #bkg_df = apply_hlt(bkg_df)
+
+    bkg_df = disp_cols(bkg_df)
+    
     sig_df = apply_hlt(sig_df)
     sig_df = disp_cols(sig_df)
 
@@ -216,7 +220,6 @@ def process(isGlobal=False, KPi=False, NotGlobal=False, plotting=False):
 
     sig = sig[keys]
     bkg = bkg[keys]
-    
 
     print(len(sig))
     print(len(xgb_sig))
@@ -226,6 +229,9 @@ def process(isGlobal=False, KPi=False, NotGlobal=False, plotting=False):
     num_sig_train = int(len(sig)*frac_train)
     num_bkg_train = int(len(bkg)*frac_train)
 
+    xgb_num_sig_train = int(len(xgb_sig)*frac_train)
+    xgb_num_bkg_train = int(len(xgb_bkg)*frac_train)
+    
     train_bkg = resample(bkg.iloc[:num_bkg_train][keys].to_numpy(), n_samples=num_sig_train)
     sig_trainkeys = sig[keys]
     bkg_trainkeys = bkg[keys]
@@ -236,15 +242,11 @@ def process(isGlobal=False, KPi=False, NotGlobal=False, plotting=False):
     valid_data = np.concatenate( (sig_trainkeys.iloc[num_sig_train:].to_numpy(), bkg_trainkeys.iloc[num_bkg_train:].to_numpy()) )
     valid_labels = np.concatenate( (np.ones(len(sig)-num_sig_train), np.zeros(len(bkg)-num_bkg_train)) )
 
-    #train_mvas = np.abs(np.concatenate( (sig_mvas[:num_sig_train],bkg_mvas[:num_bkg_train]) ))
-    #valid_mvas = np.abs(np.concatenate( (sig_mvas[num_sig_train:],bkg_mvas[num_bkg_train:]) ))
-    
     valid_mother_ids = np.abs(np.concatenate( (sig_mother_ids[num_sig_train:],bkg_mother_ids[num_bkg_train:]) ))
-
     
-    xgb_train_data = np.concatenate( (xgb_sig.iloc[:num_sig_train].to_numpy(), xgb_bkg.iloc[:num_bkg_train].to_numpy()) )
-    xgb_valid_data = np.concatenate( (xgb_sig.iloc[num_sig_train:].to_numpy(), xgb_bkg.iloc[num_bkg_train:].to_numpy()) )
-
+    xgb_train_data = np.concatenate( (xgb_sig.iloc[:xgb_num_sig_train].to_numpy(), xgb_bkg.iloc[:xgb_num_bkg_train].to_numpy()) )
+    xgb_valid_data = np.concatenate( (xgb_sig.iloc[xgb_num_sig_train:].to_numpy(), xgb_bkg.iloc[xgb_num_bkg_train:].to_numpy()) )
+    xgb_valid_labels = np.concatenate( (np.ones(len(xgb_sig)-xgb_num_sig_train), np.zeros(len(xgb_bkg)-xgb_num_bkg_train)) )
     
     np.save('train_data.npy', train_data)
     np.save('xgb_train_data.npy', xgb_train_data)
@@ -252,6 +254,7 @@ def process(isGlobal=False, KPi=False, NotGlobal=False, plotting=False):
     
     np.save('valid_data.npy', valid_data)
     np.save('xgb_valid_data.npy', xgb_valid_data)
+    np.save('xgb_valid_labels.npy', xgb_valid_labels)
     np.save('valid_labels.npy', valid_labels)
     np.save('valid_mother_ids.npy', valid_mother_ids)
 
@@ -290,6 +293,7 @@ def main():
             
             valid_data = np.load('valid_data.npy')
             valid_labels = np.load('valid_labels.npy')
+            xgb_valid_labels = np.load('xgb_valid_labels.npy')
             valid_mother_ids= np.load('valid_mother_ids.npy')
             xgb_valid_data = np.load('xgb_valid_data.npy')
         
@@ -307,6 +311,7 @@ def main():
             
             valid_data = np.load('valid_data.npy')
             valid_labels = np.load('valid_labels.npy')
+            xgb_valid_labels = np.load('xgb_valid_labels.npy')
             valid_mother_ids= np.load('valid_mother_ids.npy')
             xgb_valid_data = np.load('xgb_valid_data.npy')
     
@@ -321,14 +326,15 @@ def main():
     
         train_data = np.load('train_data.npy')
         train_labels = np.load('train_labels.npy')
-        train_mvas = np.load('train_mvas.npy')
-        train_mother_ids= np.load('train_mother_ids.npy')
+        #train_mvas = np.load('train_mvas.npy')
+        #train_mother_ids= np.load('train_mother_ids.npy')
         xbg_train_data = np.load('xgb_train_data.npy')
         
         
         valid_data = np.load('valid_data.npy')
         valid_labels = np.load('valid_labels.npy')
-        valid_mvas = np.load('valid_mvas.npy')
+        xgb_valid_labels = np.load('xgb_valid_labels.npy')
+        #valid_mvas = np.load('valid_mvas.npy')
         valid_mother_ids= np.load('valid_mother_ids.npy')
         xgb_valid_data = np.load('xgb_valid_data.npy')
     
@@ -355,8 +361,8 @@ def main():
     '''
     
     params = study.best_params
-    
-    clf = HistGradientBoostingClassifier(max_iter=500, max_depth=100, verbose=0, random_state=717, early_stopping=True,tol=1e-7,n_iter_no_change=10, validation_fraction=None)
+    print (params)
+    clf = HistGradientBoostingClassifier(max_iter=500, max_depth=params['max_depth'], learning_rate=params['learning_rate'], l2_regularization=params['l2_regularization'], max_leaf_nodes=params['max_leaf_nodes'], min_samples_leaf=params['min_samples_leaf'], verbose=0, random_state=717, early_stopping=True,tol=1e-7,n_iter_no_change=10, validation_fraction=0.1)
     clf.fit(train_data, train_labels)
     
     staged_probs = clf.staged_predict_proba(valid_data)
@@ -365,16 +371,19 @@ def main():
     for i, probs in enumerate(staged_probs):
         auc = roc_auc_score(valid_labels, probs[:,1])
         aucs.append(auc)
-    
-    plt.plot(range(len(aucs)), aucs)
-    plt.show()
-    
+        
     max_iter = np.argmax(aucs)+1
     print('Best Iteration: ', max_iter)
     print('Best AUC: ', np.max(aucs))
     
-    clf = HistGradientBoostingClassifier(max_iter=max_iter, max_depth=100, verbose=0, random_state=717, validation_fraction=None)
+    clf = HistGradientBoostingClassifier(max_iter=max_iter, max_depth=params['max_depth'], learning_rate=params['learning_rate'], l2_regularization=params['l2_regularization'], max_leaf_nodes=params['max_leaf_nodes'], min_samples_leaf=params['min_samples_leaf'], verbose=0, random_state=717, validation_fraction=0.1)
     clf.fit(train_data, train_labels)
+
+
+    val_preds = clf.predict_proba(valid_data)[:, 1]
+    val_auc = roc_auc_score(valid_labels, val_preds)
+    
+    print(f"Validation AUC: {val_auc:.3f}")
     
     with open(f'{name}.pkl', 'wb') as handle:
         pickle.dump(clf, handle)
@@ -387,22 +396,38 @@ def main():
     sig_probs = valid_clf_probs[valid_labels==1]
     bkg_probs = valid_clf_probs[valid_labels==0]
     bkg_ids = valid_mother_ids[valid_labels==0]
+
+
+    plt.figure(figsize=(8, 6))
+    plt.hist(sig_probs, bins=50, alpha=0.6, label='Signal', color='blue', density=True)
+    plt.hist(bkg_probs, bins=50, alpha=0.6, label='Background', color='red', density=True)
+    plt.xlabel('MVA Score')
+    plt.ylabel('Normalized Entries')
+    plt.title('MVA Score Distribution')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(f'{name}_BDTScores.png')
+
     
+    print (valid_clf_probs)
     ## Overall
     auc = roc_auc_score(valid_labels, valid_clf_probs)
     fpr, tpr, _ = roc_curve(valid_labels, valid_clf_probs)
     
     if KPi: label=f'KPi AUC: {auc:.4f}'
     else: label=f'Overall AUC: {auc:.4f}'
-    
+    print (fpr)
+    print (tpr)
+    plt.figure(figsize=(8, 8))
     plt.plot(fpr, tpr, label=label, linewidth=5)
     plt.plot([0,1],[0,1], linestyle='dashed', c='black',alpha=.9)
     
-    #xgb_valid_probs = xgb_model.predict(xgb.DMatrix(xgb_valid_data))
-    #auc = roc_auc_score(valid_labels, xgb_valid_probs)
-    #fpr, tpr, _ = roc_curve(valid_labels, xgb_valid_probs)
-    #plt.plot(fpr, tpr, label=f'Run3MVA: {auc:.4f}', linewidth=5)
-    #plt.plot([0,1],[0,1], linestyle='dashed', c='black',alpha=.9)
+    xgb_valid_probs = xgb_model.predict(xgb.DMatrix(xgb_valid_data))
+    auc = roc_auc_score(xgb_valid_labels, xgb_valid_probs)
+    fpr, tpr, _ = roc_curve(xgb_valid_labels, xgb_valid_probs)
+    plt.plot(fpr, tpr, label=f'Run3MVA: {auc:.4f}', linewidth=5)
+    plt.plot([0,1],[0,1], linestyle='dashed', c='black',alpha=.9)
     
     plt.xlabel('FPR')
     plt.ylabel('TPR')

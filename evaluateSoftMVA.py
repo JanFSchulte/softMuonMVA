@@ -81,11 +81,12 @@ if __name__ == "__main__":
     
     filePath = '/depot/cms/users/schul105/Tau3Mu/analysis/CMSSW_15_0_6_patch1/src/Analysis/rootFiles/'
 
-    files = [filePath+'AnalysedTree_MC_Ds_tau3mu_2023.root']
+    #files = [filePath+'AnalysedTree_data_2024_tau3mu_merged_tau3mu2024.root']
+    files = [filePath+'AnalysedTree_data_2024_tau3mu_merged_tau3mu2024.root']
     #model = joblib.load('MVA_KPiGlobalNoPt.pkl')
     model = joblib.load('firstTry.pkl')
     data = load_data(files)
     for i in range(1,maxN):
         data = predict(data, i, model)
-    save_data(data, "files/All"+type+"_plusMVA")
+    save_data(data, "files/All"+type+"_plusMVA_data_2024")
 
